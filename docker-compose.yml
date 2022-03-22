@@ -1,0 +1,94 @@
+version: '3.9'
+
+services:
+  mysql:
+    image: mysql:8.0.28
+    container_name: ${APP_NAME}-mysql
+    restart: unless-stopped
+    ports:
+      - ${APP_DB_PORT}:3306
+    volumes:
+      - ./var/mysql:/var/lib/mysql
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - ./sql:/sql
+    environment:
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+  #mongodb:
+  #  image: mongo:5.0.6
+  #  container_name: ${APP_NAME}-mongodb
+  #  restart: unless-stopped
+  #  ports:
+  #    - ${APP_MONGODB_PORT}:27017
+  #  volumes:
+  #    - ./var/mongodb:/data/db
+  #  environment:
+  #    MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
+  #    MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+  #node:
+  #  image: node:16.14-bullseye
+  #  container_name: ${APP_NAME}-node
+  #  command:
+  #    - /bin/bash
+  #    - '-c'
+  #    - |
+  #      # set variables
+  #      APP_DIR=/home/nodeapp
+  #      CERT_DIR=/config/cert
+  #      # copy config
+  #      cp /config/app.json $${APP_DIR}
+  #      # run initialization
+  #      if [ -f /scripts/nodeapp-init.sh ]; then
+  #        cp /scripts/nodeapp-init.sh ~/init.sh
+  #        chmod +x ~/init.sh
+  #        ~/init.sh &
+  #      fi
+  #      # run entrypoint
+  #      cd "$${APP_DIR}"
+  #      docker-entrypoint.sh node app.js \
+  #        --ssl-key=$${CERT_DIR}/cert.key \
+  #        --ssl-cert=$${CERT_DIR}/cert.crt-combined \
+  #        --config=app.json
+  #  environment:
+  #    APP_TIMEZONE: ${APP_TIMEZONE}
+  #  ports:
+  #    - ${APP_NODEAPP_PORT}:443
+  #  volumes:
+  #    - ./config:/config
+  #    - ./scripts:/scripts
+  #    - ./src/nodeapp:/home/nodeapp
+  php:
+    image: php:8.0.16-apache
+    container_name: ${APP_NAME}-php
+    command:
+      - /bin/bash
+      - '-c'
+      - |
+        # set apache site configuration
+        rm -rf $${APACHE_CONFDIR}/sites-enabled/*
+        ln -s /config/app.conf $${APACHE_CONFDIR}/sites-enabled/
+        # enable ssl and rewrite module
+        a2enmod ssl rewrite
+        # run initialization
+        if [ -f /scripts/php-init.sh ]; then
+          cp /scripts/php-init.sh ~/init.sh
+          chmod +x ~/init.sh
+          ~/init.sh &
+        fi
+        # run entrypoint
+        docker-php-entrypoint apache2-foreground
+    environment:
+      APP_DEBUG: ${APP_DEBUG}
+      APP_TIMEZONE: ${APP_TIMEZONE}
+    ports:
+      - ${APP_HTTP_PORT}:80
+      #- ${APP_HTTPS_PORT}:443
+    volumes:
+      - ./config:/config
+      - ./scripts:/scripts
+      - ./src/www:/home/www
+      - ./var/cache:/cache
+    depends_on:
+      - mysql
+      #- mongodb

@@ -33,9 +33,6 @@ get_php_ini() {
   echo ${ARR[2]} | xargs
 }
 
-ROOT_DIR=/home/www
-APP_DIR=${ROOT_DIR}/app
-VAR_DIR=${ROOT_DIR}/var
 CACHE_DIR=/cache/php8.0/$(uname -m)
 EXTENSIONS="gd mysqli pdo_mysql zip"
 PECL_EXTENSIONS="mongodb xdebug"
@@ -47,13 +44,6 @@ echo "PHP ini dir = ${PHP_INI_DIR}...">>$LOG
 echo "Extension dir = ${PHP_EXT_DIR}...">>$LOG
 
 mkdir -p ${CACHE_DIR}>>$LOG
-
-# give write access to app var
-for F in `ls ${VAR_DIR}`; do
-  if [ -d ${VAR_DIR}/${F} ]; then
-    chmod -R 0777 ${VAR_DIR}/${F}>>$LOG
-  fi
-done
 
 # update packages
 apt_mirror

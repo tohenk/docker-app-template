@@ -5,12 +5,26 @@ services:
     image: mysql:8.0.28
     container_name: ${APP_NAME}-mysql
     restart: unless-stopped
+    command:
+      - /bin/bash
+      - '-c'
+      - |
+        # run database patcher
+        if [ -f /scripts/patch-db.sh ]; then
+          cp /scripts/patch-db.sh ~/patch-db.sh
+          chmod +x ~/patch-db.sh
+          ~/patch-db.sh &
+        fi
+        # run entrypoint
+        docker-entrypoint.sh mysqld
     ports:
       - ${APP_DB_PORT}:3306
     volumes:
       - ./var/mysql:/var/lib/mysql
       - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
-      - ./sql:/sql
+      - ./scripts/patch-db.sh:/scripts/patch-db.sh
+      - ./data/sql:/sql
+      - ./data/patches:/sql-patches
     environment:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}

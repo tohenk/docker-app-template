@@ -58,8 +58,12 @@ services:
   #        chmod +x ~/init.sh
   #        ~/init.sh &
   #      fi
-  #      # run entrypoint
+  #      # install modules
   #      cd "$${APP_DIR}"
+  #      if [ ! -d node_modules ]; then
+  #        npm install
+  #      fi
+  #      # run entrypoint
   #      docker-entrypoint.sh node app.js \
   #        --ssl-key=$${CERT_DIR}/cert.key \
   #        --ssl-cert=$${CERT_DIR}/cert.crt-combined \

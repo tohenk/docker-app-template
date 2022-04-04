@@ -43,6 +43,7 @@ services:
   #node:
   #  image: node:16.14-bullseye
   #  container_name: ${APP_NAME}-node
+  #  restart: unless-stopped
   #  command:
   #    - /bin/bash
   #    - '-c'
@@ -79,6 +80,7 @@ services:
   php:
     image: php:8.0.16-apache
     container_name: ${APP_NAME}-php
+    restart: unless-stopped
     command:
       - /bin/bash
       - '-c'

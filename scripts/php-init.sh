@@ -5,12 +5,6 @@ echo "=== `basename $0` ==="
 LOG=/var/log/init.log
 RETRY=2
 
-# set timezone
-if [ -n "${APP_TIMEZONE}" ]; then
-  ln -sf /usr/share/zoneinfo/${APP_TIMEZONE} /etc/localtime
-  dpkg-reconfigure -f noninteractive tzdata>>$LOG
-fi
-
 apt_mirror() {
   sed -i -e "s/deb\.debian\.org/kartolo\.sby\.datautama\.net\.id/g" /etc/apt/sources.list
 }
@@ -33,7 +27,16 @@ get_php_ini() {
   echo ${ARR[2]} | xargs
 }
 
-CACHE_DIR=/cache/php8.0/$(uname -m)
+php_ext_enabled() {
+  EXT_INI="$PHP_INI_DIR/conf.d/docker-php-ext-$1.ini"
+  if [ -f $EXT_INI ]; then
+    echo 1
+  else
+    echo 0
+  fi
+}
+
+CACHE_DIR=/cache/php-$(php -v | awk '/PHP ([0-9]\.[0-9]\.[0-9]+)/{print $2}')/$(uname -m)
 EXTENSIONS="gd mysqli pdo_mysql zip"
 PECL_EXTENSIONS="mongodb xdebug"
 
@@ -51,6 +54,10 @@ apt_updates
 
 # install PHP extensions
 for EXT in ${EXTENSIONS}; do
+  if [ `php_ext_enabled ${EXT}` -eq 1 ]; then
+    echo "Extension ${EXT} already enabled, skipping..."
+    continue
+  fi
   if [ -f "${CACHE_DIR}/${EXT}.so" ]; then
     cp "${CACHE_DIR}/${EXT}.so" "${PHP_EXT_DIR}/${EXT}.so">>$LOG
     PACKAGES=""
@@ -87,6 +94,10 @@ done
 
 # install PHP pecl extensions
 for EXT in ${PECL_EXTENSIONS}; do
+  if [ `php_ext_enabled ${EXT}` -eq 1 ]; then
+    echo "Extension ${EXT} already enabled, skipping..."
+    continue
+  fi
   if [ -f "${CACHE_DIR}/${EXT}.so" ]; then
     cp "${CACHE_DIR}/${EXT}.so" "${PHP_EXT_DIR}/${EXT}.so">>$LOG
     docker-php-ext-enable ${EXT}>>$LOG

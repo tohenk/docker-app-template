@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   mysql:
-    image: mysql:8.0.28
+    image: mysql:8.0.34
     container_name: ${APP_NAME}-mysql
     restart: unless-stopped
     command:
@@ -29,62 +29,73 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-  #mongodb:
-  #  image: mongo:5.0.6
-  #  container_name: ${APP_NAME}-mongodb
-  #  restart: unless-stopped
-  #  ports:
-  #    - ${APP_MONGODB_PORT}:27017
-  #  volumes:
-  #    - ./var/mongodb:/data/db
-  #  environment:
-  #    MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
-  #    MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
-  #node:
-  #  image: node:16.14-bullseye
-  #  container_name: ${APP_NAME}-node
-  #  restart: unless-stopped
-  #  command:
-  #    - /bin/bash
-  #    - '-c'
-  #    - |
-  #      # set variables
-  #      APP_DIR=/home/nodeapp
-  #      CERT_DIR=/config/cert
-  #      # copy config
-  #      cp /config/app.json $${APP_DIR}
-  #      # run initialization
-  #      if [ -f /scripts/nodeapp-init.sh ]; then
-  #        cp /scripts/nodeapp-init.sh ~/init.sh
-  #        chmod +x ~/init.sh
-  #        ~/init.sh &
-  #      fi
-  #      # install modules
-  #      cd "$${APP_DIR}"
-  #      if [ ! -d node_modules ]; then
-  #        npm install
-  #      fi
-  #      # run entrypoint
-  #      docker-entrypoint.sh node app.js \
-  #        --ssl-key=$${CERT_DIR}/cert.key \
-  #        --ssl-cert=$${CERT_DIR}/cert.crt-combined \
-  #        --config=app.json
-  #  environment:
-  #    APP_TIMEZONE: ${APP_TIMEZONE}
-  #  ports:
-  #    - ${APP_NODEAPP_PORT}:443
-  #  volumes:
-  #    - ./config:/config
-  #    - ./scripts:/scripts
-  #    - ./src/nodeapp:/home/nodeapp
+  mongodb:
+    image: mongo:7.0.1
+    container_name: ${APP_NAME}-mongodb
+    restart: unless-stopped
+    ports:
+      - ${APP_MONGODB_PORT}:27017
+    volumes:
+      - ./var/mongodb:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+  node:
+    image: node:18.17.1-bullseye
+    container_name: ${APP_NAME}-node
+    restart: unless-stopped
+    command:
+      - /bin/bash
+      - '-c'
+      - |
+        # set timezone
+        if [ -n "$${APP_TIMEZONE}" ]; then
+          ln -sf /usr/share/zoneinfo/$${APP_TIMEZONE} /etc/localtime
+          dpkg-reconfigure -f noninteractive tzdata
+        fi
+        # set variables
+        APP_DIR=/home/nodeapp
+        CERT_DIR=/config/cert
+        # copy config
+        cp /config/app.json $${APP_DIR}
+        # run initialization
+        if [ -f /scripts/nodeapp-init.sh ]; then
+          cp /scripts/nodeapp-init.sh ~/init.sh
+          chmod +x ~/init.sh
+          ~/init.sh &
+        fi
+        # install modules
+        cd "$${APP_DIR}"
+        if [ ! -d node_modules ]; then
+          npm install
+        fi
+        # run entrypoint
+        docker-entrypoint.sh node app.js \
+          --ssl-key=$${CERT_DIR}/cert.key \
+          --ssl-cert=$${CERT_DIR}/cert.crt-combined \
+          --config=app.json
+    working_dir: /home/nodeapp
+    environment:
+      APP_TIMEZONE: ${APP_TIMEZONE}
+    ports:
+      - ${APP_NODEAPP_PORT}:443
+    volumes:
+      - ./config:/config
+      - ./scripts:/scripts
+      - ./src/nodeapp:/home/nodeapp
   php:
-    image: php:8.0.16-apache
+    image: php:8.1.23-apache
     container_name: ${APP_NAME}-php
     restart: unless-stopped
     command:
       - /bin/bash
       - '-c'
       - |
+        # set timezone
+        if [ -n "$${APP_TIMEZONE}" ]; then
+          ln -sf /usr/share/zoneinfo/$${APP_TIMEZONE} /etc/localtime
+          dpkg-reconfigure -f noninteractive tzdata
+        fi
         # set apache site configuration
         rm -rf $${APACHE_CONFDIR}/sites-enabled/*
         ln -s /config/app.conf $${APACHE_CONFDIR}/sites-enabled/
@@ -98,12 +109,13 @@ services:
         fi
         # run entrypoint
         docker-php-entrypoint apache2-foreground
+    working_dir: /home/www
     environment:
       APP_DEBUG: ${APP_DEBUG}
       APP_TIMEZONE: ${APP_TIMEZONE}
     ports:
       - ${APP_HTTP_PORT}:80
-      #- ${APP_HTTPS_PORT}:443
+      - ${APP_HTTPS_PORT}:443
     volumes:
       - ./config:/config
       - ./scripts:/scripts
@@ -111,4 +123,4 @@ services:
       - ./var/cache:/cache
     depends_on:
       - mysql
-      #- mongodb
+      - mongodb

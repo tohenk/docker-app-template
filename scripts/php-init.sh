@@ -6,7 +6,8 @@ LOG=/var/log/init.log
 RETRY=2
 
 apt_mirror() {
-  sed -i -e "s/deb\.debian\.org/kartolo\.sby\.datautama\.net\.id/g" /etc/apt/sources.list
+  [ -f /etc/apt/sources.list ] && sed -i -e "s/deb.debian.org/kartolo.sby.datautama.net.id/g" /etc/apt/sources.list
+  [ -f /etc/apt/sources.list.d/debian.sources ] && sed -i -e "s/deb.debian.org/kartolo.sby.datautama.net.id/g" /etc/apt/sources.list.d/debian.sources
 }
 
 apt_updates() {
@@ -63,7 +64,7 @@ for EXT in ${EXTENSIONS}; do
     PACKAGES=""
     case "${EXT}" in
       gd)
-        PACKAGES="${PACKAGES} libfreetype6 libjpeg62-turbo libpng16-16 libxpm4 libwebp6 zlib1g";;
+        PACKAGES="${PACKAGES} libfreetype6 libjpeg62-turbo libpng16-16 libxpm4 libwebp7 zlib1g";;
       zip)
         PACKAGES="${PACKAGES} libzip4";;
     esac

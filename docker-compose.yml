@@ -30,7 +30,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
   mongodb:
-    image: mongo:7.0.1
+    image: mongo:7.0.2
     container_name: ${APP_NAME}-mongodb
     restart: unless-stopped
     ports:
@@ -41,7 +41,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
   node:
-    image: node:18.17.1-bullseye
+    image: node:18.18.2-bullseye
     container_name: ${APP_NAME}-node
     restart: unless-stopped
     command:
@@ -84,7 +84,7 @@ services:
       - ./scripts:/scripts
       - ./src/nodeapp:/home/nodeapp
   php:
-    image: php:8.1.23-apache
+    image: php:8.1.24-apache
     container_name: ${APP_NAME}-php
     restart: unless-stopped
     command:

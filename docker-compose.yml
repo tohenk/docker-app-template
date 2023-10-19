@@ -41,7 +41,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
   node:
-    image: node:18.18.2-bullseye
+    image: node:18.18.2-bookworm
     container_name: ${APP_NAME}-node
     restart: unless-stopped
     command:

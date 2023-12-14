@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   mysql:
-    image: mysql:8.0.34
+    image: mysql:8.0.35
     container_name: ${APP_NAME}-mysql
     restart: unless-stopped
     command:
@@ -30,7 +30,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
   mongodb:
-    image: mongo:7.0.2
+    image: mongo:7.0.4
     container_name: ${APP_NAME}-mongodb
     restart: unless-stopped
     ports:
@@ -84,7 +84,7 @@ services:
       - ./scripts:/scripts
       - ./src/nodeapp:/home/nodeapp
   php:
-    image: php:8.1.24-apache
+    image: php:8.1.26-apache
     container_name: ${APP_NAME}-php
     restart: unless-stopped
     command:

@@ -1,26 +1,18 @@
-version: '3.9'
-
 services:
   mysql:
-    image: mysql:8.0.35
-    container_name: ${APP_NAME}-mysql
+    image: mysql:${MYSQL_VER}
     restart: unless-stopped
     command:
       - /bin/bash
       - '-c'
       - |
-        # run database patcher
-        if [ -f /scripts/patch-db.sh ]; then
-          cp /scripts/patch-db.sh ~/patch-db.sh
-          chmod +x ~/patch-db.sh
-          ~/patch-db.sh &
-        fi
+        # run initialization
+        run-script.sh +patch-db
         # run entrypoint
         docker-entrypoint.sh mysqld
-    ports:
-      - ${APP_DB_PORT}:3306
     volumes:
       - ./var/mysql:/var/lib/mysql
+      - ./bin/run-script.sh:/usr/local/bin/run-script.sh
       - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
       - ./scripts/patch-db.sh:/scripts/patch-db.sh
       - ./data/sql:/sql
@@ -30,46 +22,33 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
   mongodb:
-    image: mongo:7.0.4
-    container_name: ${APP_NAME}-mongodb
+    image: mongo:${MONGODB_VER}
     restart: unless-stopped
-    ports:
-      - ${APP_MONGODB_PORT}:27017
     volumes:
       - ./var/mongodb:/data/db
+      - ./bin/run-script.sh:/usr/local/bin/run-script.sh
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
   node:
-    image: node:18.18.2-bookworm
-    container_name: ${APP_NAME}-node
+    image: node:${NODE_VER}-bookworm
     restart: unless-stopped
     command:
       - /bin/bash
       - '-c'
       - |
-        # set timezone
-        if [ -n "$${APP_TIMEZONE}" ]; then
-          ln -sf /usr/share/zoneinfo/$${APP_TIMEZONE} /etc/localtime
-          dpkg-reconfigure -f noninteractive tzdata
-        fi
-        # set variables
-        APP_DIR=/home/nodeapp
-        CERT_DIR=/config/cert
-        # copy config
-        cp /config/app.json $${APP_DIR}
+        export TARGET_DIR=/home/nodeapp
+        export EXCLUDE_FILE=/config/node-exclude.txt
         # run initialization
-        if [ -f /scripts/nodeapp-init.sh ]; then
-          cp /scripts/nodeapp-init.sh ~/init.sh
-          chmod +x ~/init.sh
-          ~/init.sh &
-        fi
-        # install modules
-        cd "$${APP_DIR}"
+        run-script.sh timezone sync-src hostkey
+        # setup configuration
+        cp /config/app.json $${TARGET_DIR}
+        cd "$${TARGET_DIR}"
         if [ ! -d node_modules ]; then
           npm install
         fi
         # run entrypoint
+        CERT_DIR=/config/cert
         docker-entrypoint.sh node app.js \
           --ssl-key=$${CERT_DIR}/cert.key \
           --ssl-cert=$${CERT_DIR}/cert.crt-combined \
@@ -77,50 +56,106 @@ services:
     working_dir: /home/nodeapp
     environment:
       APP_TIMEZONE: ${APP_TIMEZONE}
-    ports:
-      - ${APP_NODEAPP_PORT}:443
+      APT_MIRROR: ${APT_MIRROR}
     volumes:
       - ./config:/config
       - ./scripts:/scripts
-      - ./src/nodeapp:/home/nodeapp
+      - ./bin/run-script.sh:/usr/local/bin/run-script.sh
+      - ./src/nodeapp:/src
+    extra_hosts:
+      - host.docker.internal:host-gateway
   php:
-    image: php:8.1.26-apache
-    container_name: ${APP_NAME}-php
+    image: php:${PHP_VER}-apache
     restart: unless-stopped
     command:
       - /bin/bash
       - '-c'
       - |
-        # set timezone
-        if [ -n "$${APP_TIMEZONE}" ]; then
-          ln -sf /usr/share/zoneinfo/$${APP_TIMEZONE} /etc/localtime
-          dpkg-reconfigure -f noninteractive tzdata
-        fi
+        export TARGET_DIR=/home/www
+        export EXCLUDE_FILE=/config/www-exclude.txt
+        # run initialization
+        run-script.sh timezone sync-src apt php-init:init +sshd
         # set apache site configuration
         rm -rf $${APACHE_CONFDIR}/sites-enabled/*
         ln -s /config/app.conf $${APACHE_CONFDIR}/sites-enabled/
         # enable ssl and rewrite module
         a2enmod ssl rewrite
-        # run initialization
-        if [ -f /scripts/php-init.sh ]; then
-          cp /scripts/php-init.sh ~/init.sh
-          chmod +x ~/init.sh
-          ~/init.sh &
-        fi
         # run entrypoint
         docker-php-entrypoint apache2-foreground
     working_dir: /home/www
     environment:
       APP_DEBUG: ${APP_DEBUG}
       APP_TIMEZONE: ${APP_TIMEZONE}
+      APT_MIRROR: ${APT_MIRROR}
+    volumes:
+      - ./config:/config
+      - ./scripts:/scripts
+      - ./bin/run-script.sh:/usr/local/bin/run-script.sh
+      - ./src/www:/src
+      - ./var/cache:/cache
+    depends_on:
+      - mysql
+      - mongodb
+    deploy:
+      mode: replicated
+      replicas: 1
+      endpoint_mode: vip
+  nginx:
+    image: nginx:${NGINX_VER}
+    restart: unless-stopped
+    command:
+      - /bin/bash
+      - '-c'
+      - |
+        # run initialization
+        run-script.sh timezone
+        # run entrypoint
+        /docker-entrypoint.sh nginx -g "daemon off;"
+    environment:
+      APP_TIMEZONE: ${APP_TIMEZONE}
+      APT_MIRROR: ${APT_MIRROR}
     ports:
       - ${APP_HTTP_PORT}:80
       - ${APP_HTTPS_PORT}:443
     volumes:
       - ./config:/config
-      - ./scripts:/scripts
-      - ./src/www:/home/www
-      - ./var/cache:/cache
+      - ./config/default.conf.template:/etc/nginx/templates/default.conf.template
+      - ./bin/run-script.sh:/usr/local/bin/run-script.sh
     depends_on:
-      - mysql
-      - mongodb
+      - php
+  cron:
+    image: debian:bookworm-slim
+    restart: unless-stopped
+    command:
+      - /bin/bash
+      - '-c'
+      - |
+        # run initialization
+        run-script.sh timezone hostkey apt
+        # setup cron
+        CRON_DIR=/cron
+        apt-get install -y dos2unix cron openssh-client>/dev/null
+        # https://levelup.gitconnected.com/cron-docker-the-easiest-job-scheduler-youll-ever-create-e1753eb5ea44
+        if [ -z "$$SCHEDULER_ENV" ]; then
+          echo "SCHEDULER_ENV is not set, using prod"
+          SCHEDULER_ENV="prod"
+        fi
+        # fixup line ending and permissions
+        dos2unix $$CRON_DIR/*
+        find $$CRON_DIR -type f -name '*.sh' -exec chmod +x {} \;
+        # select the crontab file based on the environment
+        CRON_FILE="$$CRON_DIR/crontab.$$SCHEDULER_ENV"
+        echo "Loading crontab file: $$CRON_FILE"
+        # load the crontab file
+        crontab $$CRON_FILE
+        # start cron
+        echo "Starting cron..."
+        cron -f -L 15
+    environment:
+      APP_TIMEZONE: ${APP_TIMEZONE}
+      APT_MIRROR: ${APT_MIRROR}
+    volumes:
+      - ./config:/config
+      - ./scripts:/scripts
+      - ./bin/run-script.sh:/usr/local/bin/run-script.sh
+      - ./cron:/cron

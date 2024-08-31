@@ -1,13 +1,14 @@
 #!/bin/bash
 
 LOG=/var/log/sshd.log
+APT_OPTS="-o DPkg::Lock::Timeout=-1"
 
 # start sshd
 if [ -f /config/hostkey/id_rsa.pub ]; then
   mkdir -p ~/.ssh
   cp /config/hostkey/id_rsa.pub ~/.ssh/authorized_keys
   chmod 0640 ~/.ssh/authorized_keys
-  apt-get install -y openssh-server>>$LOG
+  apt-get install $APT_OPTS -y openssh-server>>$LOG
   # prepare openssh-server configuration
   SSHD_CONFIG=/etc/ssh/sshd_config
   if [ -n "${APP_SSH_PORT}" ]; then

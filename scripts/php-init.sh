@@ -1,26 +1,6 @@
 #!/bin/bash
 
-echo "=== `basename $0` ==="
-
 LOG=/var/log/init.log
-RETRY=2
-
-apt_mirror() {
-  [ -f /etc/apt/sources.list ] && sed -i -e "s/deb.debian.org/kartolo.sby.datautama.net.id/g" /etc/apt/sources.list
-  [ -f /etc/apt/sources.list.d/debian.sources ] && sed -i -e "s/deb.debian.org/kartolo.sby.datautama.net.id/g" /etc/apt/sources.list.d/debian.sources
-}
-
-apt_updates() {
-  for i in {1..$RETRY}; do
-    apt-get update>>$LOG
-  done
-}
-
-apt_install() {
-  for i in {1..$RETRY}; do
-    apt-get install -y $@>>$LOG
-  done
-}
 
 get_php_ini() {
   KEY=$1
@@ -49,10 +29,6 @@ echo "Extension dir = ${PHP_EXT_DIR}...">>$LOG
 
 mkdir -p ${CACHE_DIR}>>$LOG
 
-# update packages
-apt_mirror
-apt_updates
-
 # install PHP extensions
 for EXT in ${EXTENSIONS}; do
   if [ `php_ext_enabled ${EXT}` -eq 1 ]; then
@@ -69,7 +45,7 @@ for EXT in ${EXTENSIONS}; do
         PACKAGES="${PACKAGES} libzip4";;
     esac
     if [ -n "${PACKAGES}" ]; then
-      apt_install ${PACKAGES}
+      apt-get install -y ${PACKAGES}>>$LOG
     fi
     docker-php-ext-enable ${EXT}>>$LOG
   else
@@ -83,7 +59,7 @@ for EXT in ${EXTENSIONS}; do
         PACKAGES="${PACKAGES} libzip-dev";;
     esac
     if [ -n "${PACKAGES}" ]; then
-      apt_install ${PACKAGES}
+      apt-get install -y ${PACKAGES}>>$LOG
     fi
     if [ -n "${CONFIGURES}" ]; then
       docker-php-ext-configure ${EXT} ${CONFIGURES}>>$LOG
@@ -115,7 +91,7 @@ for EXT in ${PECL_EXTENSIONS}; do
         fi;;
     esac
     if [ -n "${PACKAGES}" ]; then
-      apt_install ${PACKAGES}
+      apt-get install -y ${PACKAGES}>>$LOG
     fi
     pecl install ${EXT}>>$LOG
     docker-php-ext-enable ${EXT}>>$LOG
@@ -133,17 +109,5 @@ sed -i -e "s#;date.timezone =#date.timezone = ${APP_TIMEZONE}#g" ${PHP_INI}
 # reload apache
 /etc/init.d/apache2 reload>>$LOG
 
-# mark as initialized
-touch /tmp/.initialized
-
-# run add-ons
-if [ -f /scripts/addons.lst ]; then
-  for ADDON in `cat /scripts/addons.lst`; do
-    if [ -f /scripts/${ADDON} ]; then
-      echo "=== ${ADDON} ==="
-      cp /scripts/${ADDON} ~/${ADDON}
-      chmod +x ~/${ADDON}
-      ~/${ADDON}
-    fi
-  done
-fi
+# mark as ready
+touch /tmp/.ready

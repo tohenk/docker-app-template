@@ -82,6 +82,10 @@ services:
         a2enmod ssl rewrite
         # run entrypoint
         docker-php-entrypoint apache2-foreground
+    healthcheck:
+      test: cat /tmp/.ready
+      start_period: 30s
+      start_interval: 15s
     working_dir: /home/www
     environment:
       APP_DEBUG: ${APP_DEBUG}

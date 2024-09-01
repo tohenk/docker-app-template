@@ -53,6 +53,8 @@ services:
           --ssl-key=$${CERT_DIR}/cert.key \
           --ssl-cert=$${CERT_DIR}/cert.crt-combined \
           --config=app.json
+    expose:
+      - 443
     working_dir: /home/nodeapp
     environment:
       APP_TIMEZONE: ${APP_TIMEZONE}
@@ -82,6 +84,8 @@ services:
         a2enmod ssl rewrite
         # run entrypoint
         docker-php-entrypoint apache2-foreground
+    expose:
+      - 443
     healthcheck:
       test: cat /tmp/.ready
       start_period: 30s

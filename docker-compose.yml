@@ -132,7 +132,7 @@ services:
     depends_on:
       - php
   cron:
-    image: debian:bookworm-slim
+    image: debian:${DEBIAN_VER}
     restart: unless-stopped
     command:
       - /bin/bash

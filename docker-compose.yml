@@ -132,15 +132,20 @@ services:
       - |
         export CRON_DIR=/cron
         # run initialization
-        run-script.sh timezone hostkey apt cron ssh
+        run-script.sh timezone apt cron hostkey ssh mongodb-client mysql-client
         # start cron
         echo "Starting cron..."
         cron -f -L 15
     environment:
       APP_TIMEZONE: ${APP_TIMEZONE}
       APT_MIRROR: ${APT_MIRROR}
+      MONGODB_USER: ${MONGODB_USER}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - ./bin/run-script.sh:/usr/local/bin/run-script.sh
       - ./config:/config
       - ./scripts:/scripts
       - ./cron:/cron
+      - ./backup:/backup

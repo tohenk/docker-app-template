@@ -1,0 +1,2 @@
+30 23 * * * /cron/mysql-backup.sh 2>&1 | tee -a /var/log/mysql-backup.log
+45 23 * * 0 /cron/mongodb-backup.sh 2>&1 | tee -a /var/log/mongodb-backup.log

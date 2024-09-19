@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LOG=/var/log/init.log
+LOG=/var/log/php.log
 
 get_php_ini() {
   KEY=$1
@@ -28,6 +28,9 @@ echo "PHP ini dir = ${PHP_INI_DIR}...">>$LOG
 echo "Extension dir = ${PHP_EXT_DIR}...">>$LOG
 
 mkdir -p ${CACHE_DIR}>>$LOG
+
+# install dependencies
+apt-get install -y imagemagick>>$LOG
 
 # install PHP extensions
 for EXT in ${EXTENSIONS}; do
@@ -84,7 +87,7 @@ for EXT in ${PECL_EXTENSIONS}; do
       mongodb)
         PACKAGES="${PACKAGES} libssl-dev";;
       xdebug)
-        if [ "${EXT}" == "xdebug" ]; then
+        if [ "${EXT}" = "xdebug" ]; then
           if [ "${APP_DEBUG}" != "true" ]; then
             continue
           fi
@@ -102,12 +105,11 @@ done
 # prepare php.ini
 PHP_INI=${PHP_INI_DIR}/php.ini
 cp ${PHP_INI}-production ${PHP_INI}
-sed -i -e "s#memory_limit = 128M#memory_limit = 1024M#g" ${PHP_INI}
-sed -i -e "s#post_max_size = 8M#post_max_size = 0#g" ${PHP_INI}
-sed -i -e "s#;date.timezone =#date.timezone = ${APP_TIMEZONE}#g" ${PHP_INI}
+sed -i -e "s#memory_limit = 128M#memory_limit = 1024M#g" \
+       -e "s#max_execution_time = 30#max_execution_time = 60#g" \
+       -e "s#post_max_size = 8M#post_max_size = 0#g" \
+       -e "s#;date.timezone =#date.timezone = ${APP_TIMEZONE}#g" \
+       ${PHP_INI}
 
 # reload apache
 /etc/init.d/apache2 reload>>$LOG
-
-# mark as ready
-touch /tmp/.ready

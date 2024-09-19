@@ -14,4 +14,12 @@ if [ -n "${TARGET_DIR}" ]; then
       rsync -avzi ${SRC_DIR} ${TARGET_DIR}>>$LOG
     fi
   fi
+  if [ -n "${COPY_FILES}" ]; then
+    for F in ${COPY_FILES}; do
+      cp /config/${F} ${TARGET_DIR}>>$LOG
+      if [ "${F: -3}" = ".sh" ]; then
+        chmod +x ${TARGET_DIR}/${F}
+      fi
+    done
+  fi
 fi

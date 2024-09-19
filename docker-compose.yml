@@ -39,16 +39,12 @@ services:
       - |
         export TARGET_DIR=/home/nodeapp
         export EXCLUDE_FILE=/config/node-exclude.txt
+        export COPY_FILES="app.json"
         # run initialization
-        run-script.sh timezone sync-src hostkey
-        # setup configuration
-        cp /config/app.json $${TARGET_DIR}
-        cd "$${TARGET_DIR}"
-        if [ ! -d node_modules ]; then
-          npm install
-        fi
+        run-script.sh timezone sync-src hostkey npm-install ready
         # run entrypoint
         CERT_DIR=/config/cert
+        cd "$${TARGET_DIR}"
         docker-entrypoint.sh node app.js \
           --ssl-key=$${CERT_DIR}/cert.key \
           --ssl-cert=$${CERT_DIR}/cert.crt-combined \
@@ -75,13 +71,9 @@ services:
       - |
         export TARGET_DIR=/home/www
         export EXCLUDE_FILE=/config/www-exclude.txt
+        export APACHE_APP_CONF=/config/app.conf
         # run initialization
-        run-script.sh timezone sync-src apt php-init:init +sshd
-        # set apache site configuration
-        rm -rf $${APACHE_CONFDIR}/sites-enabled/*
-        ln -s /config/app.conf $${APACHE_CONFDIR}/sites-enabled/
-        # enable ssl and rewrite module
-        a2enmod ssl rewrite
+        run-script.sh timezone sync-src apt apache php ready +sshd
         # run entrypoint
         docker-php-entrypoint apache2-foreground
     expose:

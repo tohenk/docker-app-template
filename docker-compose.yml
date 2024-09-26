@@ -131,8 +131,10 @@ services:
       - '-c'
       - |
         export CRON_DIR=/cron
+        export TARGET_DIR=$${CRON_DIR}
+        export VAR_FILE_PATTERN=/config/*.var
         # run initialization
-        run-script.sh timezone apt cron hostkey ssh mongodb-client mysql-client
+        run-script.sh timezone apt cron hostkey ssh mongodb-client mysql-client genvar
         # start cron
         echo "Starting cron..."
         cron -f -L 15

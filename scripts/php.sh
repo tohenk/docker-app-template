@@ -9,98 +9,97 @@ get_php_ini() {
 }
 
 php_ext_enabled() {
-  EXT_INI="$PHP_INI_DIR/conf.d/docker-php-ext-$1.ini"
-  if [ -f $EXT_INI ]; then
+  EXT_INI="${PHP_INI_DIR}/conf.d/docker-php-ext-$1.ini"
+  if [ -f "${EXT_INI}" ]; then
     echo 1
   else
     echo 0
   fi
 }
 
-CACHE_DIR=/cache/php-$(php -v | awk '/PHP ([0-9]\.[0-9]\.[0-9]+)/{print $2}')/$(uname -m)
-EXTENSIONS="gd mysqli pdo_mysql zip"
-PECL_EXTENSIONS="mongodb xdebug"
+ENV=/scripts/php.var
 
-PHP_INI_DIR=`get_php_ini 'Configuration File (php.ini) Path'`
-PHP_EXT_DIR=`get_php_ini 'extension_dir'`
+[ -f "${ENV}" ] && {
 
-echo "PHP ini dir = ${PHP_INI_DIR}...">>$LOG
-echo "Extension dir = ${PHP_EXT_DIR}...">>$LOG
+  . ${ENV}
 
-mkdir -p ${CACHE_DIR}>>$LOG
+  CACHE_DIR=/cache/php-$(php -v | awk '/PHP ([0-9]\.[0-9]\.[0-9]+)/{print $2}')/$(uname -m)
+  PHP_INI_DIR=`get_php_ini 'Configuration File (php.ini) Path'`
+  PHP_EXT_DIR=`get_php_ini 'extension_dir'`
 
-# install dependencies
-apt-get install -y imagemagick>>$LOG
+  echo "PHP ini dir = ${PHP_INI_DIR}...">>$LOG
+  echo "Extension dir = ${PHP_EXT_DIR}...">>$LOG
 
-# install PHP extensions
-for EXT in ${EXTENSIONS}; do
-  if [ `php_ext_enabled ${EXT}` -eq 1 ]; then
-    echo "Extension ${EXT} already enabled, skipping..."
-    continue
+  mkdir -p ${CACHE_DIR}>>$LOG
+
+  # install dependencies
+  if [ -n "${APT_PACKAGES}" ]; then
+    apt-get install -y ${APT_PACKAGES}>>$LOG
   fi
-  if [ -f "${CACHE_DIR}/${EXT}.so" ]; then
-    cp "${CACHE_DIR}/${EXT}.so" "${PHP_EXT_DIR}/${EXT}.so">>$LOG
-    PACKAGES=""
-    case "${EXT}" in
-      gd)
-        PACKAGES="${PACKAGES} libfreetype6 libjpeg62-turbo libpng16-16 libxpm4 libwebp7 zlib1g";;
-      zip)
-        PACKAGES="${PACKAGES} libzip4";;
-    esac
+
+  # install PHP extensions
+  for EXT in ${EXTENSIONS}; do
+    IFS=':' read -ra ARR <<< "${EXT}"
+    EXT_TYPE=
+    EXT_ENABLED=
+    if [ ${#ARR[@]} -gt 1 ]; then
+      EXT=${ARR[0]}
+      EXT_TYPE=${ARR[1]}
+    fi
+    if [ ${#ARR[@]} -gt 2 ]; then
+      EXT_ENABLED="APP_${ARR[2]}"
+    fi
+    if [ `php_ext_enabled ${EXT}` -eq 1 ]; then
+      echo "Extension ${EXT} already enabled, skipping..."
+      continue
+    fi
+    if [ -n "${EXT_ENABLED}" ]; then
+      if [ "x${!EXT_ENABLED}" != "xtrue" ]; then
+        echo "Extension ${EXT} not enabled, skipping..."
+        continue
+      fi
+    fi
+
+    XID=${EXT^^}
+    XPACKAGES="EXT_${XID}_PACKAGES"
+    XDEVPACKAGES="EXT_${XID}_DEV_PACKAGES"
+    XCONFIGURES="EXT_${XID}_CONFIGURES"
+    if [ -f "${CACHE_DIR}/${EXT}.so" ]; then
+      XBUILD=0
+    else
+      XBUILD=1
+    fi
+
+    # install extension dependencies
+    if [ ${XBUILD} -eq 0 ]; then
+      PACKAGES="${!XPACKAGES}"
+    else
+      PACKAGES="${!XDEVPACKAGES}"
+    fi
     if [ -n "${PACKAGES}" ]; then
       apt-get install -y ${PACKAGES}>>$LOG
     fi
-    docker-php-ext-enable ${EXT}>>$LOG
-  else
-    PACKAGES=""
-    CONFIGURES=""
-    case "${EXT}" in
-      gd)
-        PACKAGES="${PACKAGES} libfreetype6-dev libjpeg62-turbo-dev libpng-dev libxpm-dev libwebp-dev zlib1g-dev"
-        CONFIGURES="--with-freetype --with-jpeg --with-xpm --with-webp";;
-      zip)
-        PACKAGES="${PACKAGES} libzip-dev";;
-    esac
-    if [ -n "${PACKAGES}" ]; then
-      apt-get install -y ${PACKAGES}>>$LOG
+    if [ ${XBUILD} -eq 0 ]; then
+      cp "${CACHE_DIR}/${EXT}.so" "${PHP_EXT_DIR}/${EXT}.so">>$LOG
+      docker-php-ext-enable ${EXT}>>$LOG
+    else
+      CONFIGURES="${!XCONFIGURES}"
+      if [ -n "${CONFIGURES}" ]; then
+        docker-php-ext-configure ${EXT} ${CONFIGURES}>>$LOG
+      fi
+      case "${EXT_TYPE}" in
+        pecl)
+          pecl install ${EXT}>>$LOG
+          docker-php-ext-enable ${EXT}>>$LOG
+          ;;
+        *)
+          docker-php-ext-install -j$(nproc) ${EXT}>>$LOG
+          ;;
+      esac
+      cp "${PHP_EXT_DIR}/${EXT}.so" "${CACHE_DIR}/${EXT}.so">>$LOG
     fi
-    if [ -n "${CONFIGURES}" ]; then
-      docker-php-ext-configure ${EXT} ${CONFIGURES}>>$LOG
-    fi
-    docker-php-ext-install -j$(nproc) ${EXT}>>$LOG
-    cp "${PHP_EXT_DIR}/${EXT}.so" "${CACHE_DIR}/${EXT}.so">>$LOG
-  fi
-done
-
-# install PHP pecl extensions
-for EXT in ${PECL_EXTENSIONS}; do
-  if [ `php_ext_enabled ${EXT}` -eq 1 ]; then
-    echo "Extension ${EXT} already enabled, skipping..."
-    continue
-  fi
-  if [ -f "${CACHE_DIR}/${EXT}.so" ]; then
-    cp "${CACHE_DIR}/${EXT}.so" "${PHP_EXT_DIR}/${EXT}.so">>$LOG
-    docker-php-ext-enable ${EXT}>>$LOG
-  else
-    PACKAGES=""
-    case "${EXT}" in
-      mongodb)
-        PACKAGES="${PACKAGES} libssl-dev";;
-      xdebug)
-        if [ "${EXT}" = "xdebug" ]; then
-          if [ "${APP_DEBUG}" != "true" ]; then
-            continue
-          fi
-        fi;;
-    esac
-    if [ -n "${PACKAGES}" ]; then
-      apt-get install -y ${PACKAGES}>>$LOG
-    fi
-    pecl install ${EXT}>>$LOG
-    docker-php-ext-enable ${EXT}>>$LOG
-    cp "${PHP_EXT_DIR}/${EXT}.so" "${CACHE_DIR}/${EXT}.so">>$LOG
-  fi
-done
+  done
+}
 
 # prepare php.ini
 PHP_INI=${PHP_INI_DIR}/php.ini

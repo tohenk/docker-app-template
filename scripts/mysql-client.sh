@@ -2,7 +2,7 @@
 
 APT_OPTS="-o DPkg::Lock::Timeout=-1"
 
-apt-get install $APT_OPTS -y curl gnupg p7zip-full>/dev/null
+apt-get install $APT_OPTS -y curl gnupg 7zip>/dev/null
 
 # import MySQL GPG public key
 mkdir -p /etc/apt/keyrings

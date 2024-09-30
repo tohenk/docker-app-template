@@ -10,6 +10,8 @@ ENV=${CD}/mysql-backup.var
 
   MYSQLDUMP=$(which mysqldump)
   if [ -n "$MYSQLDUMP" -a -n "${DB_BACKUPS}" ]; then
+    ZZ=$(which 7z)
+    [ -z "${ZZ}" ] && ZZ=$(which 7zz)
     # prepare backup storage
     BACKUPDIR=/backup/MySQL
     if [ `date +%d` = "01" ]; then
@@ -27,7 +29,7 @@ ENV=${CD}/mysql-backup.var
       echo "Creating MySQL database dump for $DB..."
       [ -f "$DB_BACKUP" ] && mv "$DB_BACKUP" "$DB_BACKUP~"
       $MYSQLDUMP --single-transaction --routines --quick --set-gtid-purged=OFF -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD $DB | \
-        7z a -si "$DB_BACKUP"
+        $ZZ a -si "$DB_BACKUP"
     done
     # cleanup daily backup
     if [ "$DAILY" = "true" ]; then

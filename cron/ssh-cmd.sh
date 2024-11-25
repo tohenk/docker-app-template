@@ -2,7 +2,7 @@
 
 CD=`dirname $0`
 CD=`pushd $CD>/dev/null && pwd -P && popd>/dev/null`
-ENV=${CD}/ssh-cmd.var
+ENV=${CD}/ssh-cmd.env
 
 [ -f "${ENV}" ] && {
 

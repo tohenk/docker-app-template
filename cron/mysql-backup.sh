@@ -2,7 +2,7 @@
 
 CD=`dirname $0`
 CD=`pushd $CD>/dev/null && pwd -P && popd>/dev/null`
-ENV=${CD}/mysql-backup.var
+ENV=${CD}/mysql-backup.env
 
 [ -f "${ENV}" ] && {
 

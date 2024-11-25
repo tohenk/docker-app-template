@@ -17,7 +17,7 @@ php_ext_enabled() {
   fi
 }
 
-ENV=/scripts/php.var
+ENV=/scripts/php.env
 
 [ -f "${ENV}" ] && {
 
@@ -33,8 +33,8 @@ ENV=/scripts/php.var
   mkdir -p ${CACHE_DIR}>>$LOG
 
   # install dependencies
-  if [ -n "${APT_PACKAGES}" ]; then
-    apt-get install -y ${APT_PACKAGES}>>$LOG
+  if [ -n "${EXTRA_PACKAGES}" ]; then
+    apt-get install -y ${EXTRA_PACKAGES}>>$LOG
   fi
 
   # install PHP extensions

@@ -52,9 +52,9 @@ services:
       - |
         export CRON_DIR=/cron
         export TARGET_DIR=$${CRON_DIR}
-        export VAR_FILE_PATTERN=/config/*.var
+        export ENV_FILE_PATTERN=/config/*.env
         # run initialization
-        run-script.sh timezone apt cron hostkey ssh mongodb-client mysql-client genvar
+        run-script.sh timezone apt cron hostkey ssh mongodb-client mysql-client genenv
         # start cron
         echo "Starting cron..."
         cron -f -L 15
@@ -79,7 +79,7 @@ There are predefined scripts to allow the container customization as shown below
 | [apache](/scripts/apache.sh)                 | Set apache default configuration from `APACHE_APP_CONF` env also enable SSL and rewrite module                                                                     |
 | [apt](/scripts/apt.sh)                       | Set Debian mirror from `APT_MIRROR` env and update APT to the latest                                                                                               |
 | [cron](/scripts/cron.sh)                     | Setup CRON in the container, expects `CRON_DIR` env for location of cron files such as `crontab.prod`                                                              |
-| [genvar](/scripts/genvar.sh)                 | Generate source file from environment variables in `TARGET_DIR` env using file pattern `VAR_FILE_PATTERN` env                                                      |
+| [genenv](/scripts/genenv.sh)                 | Generate environment file from environment variables in `TARGET_DIR` env using file pattern `ENV_FILE_PATTERN` env                                                 |
 | [hostkey](/scripts/hostkey.sh)               | Setup host key files `id_rsa` and `id_rsa.pub` from `config/hostkey` folder                                                                                        |
 | [init-db](/scripts/init-db.sh)               | Used by MySQL container to intialize databases                                                                                                                     |
 | [mongodb-client](/scripts/mongodb-client.sh) | Setup MongoDB APT repository and install MongoDB client utilities such as `mongodump`                                                                              |

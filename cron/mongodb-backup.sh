@@ -2,7 +2,7 @@
 
 CD=`dirname $0`
 CD=`pushd $CD>/dev/null && pwd -P && popd>/dev/null`
-ENV=${CD}/mongodb-backup.var
+ENV=${CD}/mongodb-backup.env
 
 [ -f "${ENV}" ] && {
 

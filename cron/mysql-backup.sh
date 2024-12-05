@@ -29,7 +29,7 @@ ENV=${CD}/mysql-backup.env
     mkdir -p $BACKUPDIR
     # execute backup
     for DB in $DB_BACKUPS; do
-      if [ "$DB" = "mysql" -o "$DB" = "information_schema" -o "$DB" = "sys" ]; then
+      if [[ "$DB" =~ ^(mysql|information_schema|performance_schema|sys)$ ]]; then
         continue
       fi
       DB_BACKUP=$BACKUPDIR/$DB.sql.7z

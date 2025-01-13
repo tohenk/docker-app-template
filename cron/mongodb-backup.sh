@@ -24,6 +24,9 @@ EOF
     # prepare backup storage
     TOPDIR=/backup/MongoDB
     for DB in $DB_BACKUPS; do
+      if [[ "$DB" =~ ^(admin|config|local)$ ]]; then
+        continue
+      fi
       echo "--- mongodb://$DB_HOST:$DB_PORT/$DB ---"
       # get backup type -> full or delta
       BACKUP="delta"

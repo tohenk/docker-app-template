@@ -32,7 +32,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
   node:
-    image: node:${NODE_VER}-bookworm
+    image: node:${NODE_VER}-bookworm-slim
     restart: unless-stopped
     command:
       - /bin/bash

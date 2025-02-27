@@ -42,12 +42,16 @@ ENV=/scripts/php.env
     IFS=':' read -ra ARR <<< "${EXT}"
     EXT_TYPE=
     EXT_ENABLED=
+    EXT_YES=
     if [ ${#ARR[@]} -gt 1 ]; then
       EXT=${ARR[0]}
       EXT_TYPE=${ARR[1]}
     fi
-    if [ ${#ARR[@]} -gt 2 ]; then
+    if [ ${#ARR[@]} -gt 2 -a "x${ARR[2]}" != "x" ]; then
       EXT_ENABLED="APP_${ARR[2]}"
+    fi
+    if [ ${#ARR[@]} -gt 3 ]; then
+      EXT_YES=${ARR[3]}
     fi
     if [ `php_ext_enabled ${EXT}` -eq 1 ]; then
       echo "Extension ${EXT} already enabled, skipping..."
@@ -89,7 +93,11 @@ ENV=/scripts/php.env
       fi
       case "${EXT_TYPE}" in
         pecl)
-          pecl install ${EXT}>>$LOG
+          if [ -n "${EXT_YES}" ]; then
+            yes | pecl install ${EXT}>>$LOG
+          else
+            pecl install ${EXT}>>$LOG
+          fi
           docker-php-ext-enable ${EXT}>>$LOG
           ;;
         *)

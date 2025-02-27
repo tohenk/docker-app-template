@@ -97,10 +97,20 @@ services:
     depends_on:
       - mysql
       - mongodb
+      - cache
     deploy:
       mode: replicated
       replicas: 1
       endpoint_mode: vip
+  cache:
+    image: memcached
+    restart: unless-stopped
+    command:
+      - memcached
+      - --conn-limit=1024
+      - --memory-limit=1024
+      - --threads=4
+      - --max-item-size=128m
   nginx:
     image: nginx:${NGINX_VER}
     restart: unless-stopped

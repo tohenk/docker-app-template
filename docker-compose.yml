@@ -63,6 +63,20 @@ services:
       - ./src/nodeapp:/src
     extra_hosts:
       - host.docker.internal:host-gateway
+  builder:
+    image: php:${PHP_VER}-apache
+    command:
+      - /bin/bash
+      - '-c'
+      - |
+        run-script.sh apt php
+    environment:
+      APT_MIRROR: ${APT_MIRROR}
+      PHP_BOOTSTRAP: "true"
+    volumes:
+      - ./bin/run-script.sh:/usr/local/bin/run-script.sh
+      - ./scripts:/scripts
+      - ./var/cache:/cache
   php:
     image: php:${PHP_VER}-apache
     restart: unless-stopped
@@ -95,9 +109,14 @@ services:
       - ./src/www:/src
       - ./var/cache:/cache
     depends_on:
-      - mysql
-      - mongodb
-      - cache
+      builder:
+        condition: service_completed_successfully
+      mysql:
+        condition: service_started
+      mongodb:
+        condition: service_started
+      cache:
+        condition: service_started
     deploy:
       mode: replicated
       replicas: 1

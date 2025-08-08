@@ -33,7 +33,7 @@ ENV=/scripts/php.env
   mkdir -p ${CACHE_DIR}>>$LOG
 
   # install dependencies
-  if [ -n "${EXTRA_PACKAGES}" ]; then
+  if [ -n "${EXTRA_PACKAGES}" -a -z "${PHP_BOOTSTRAP}" ]; then
     apt-get install -y ${EXTRA_PACKAGES}>>$LOG
   fi
 
@@ -76,7 +76,12 @@ ENV=/scripts/php.env
 
     # install extension dependencies
     if [ ${XBUILD} -eq 0 ]; then
-      PACKAGES="${!XPACKAGES}"
+      # set packages only when not bootstrapping
+      if [ -z "${PHP_BOOTSTRAP}" ]; then
+        PACKAGES="${!XPACKAGES}"
+      else
+        PACKAGES=
+      fi
     else
       PACKAGES="${!XDEVPACKAGES}"
     fi
@@ -84,8 +89,10 @@ ENV=/scripts/php.env
       apt-get install -y ${PACKAGES}>>$LOG
     fi
     if [ ${XBUILD} -eq 0 ]; then
-      cp "${CACHE_DIR}/${EXT}.so" "${PHP_EXT_DIR}/${EXT}.so">>$LOG
-      docker-php-ext-enable ${EXT}>>$LOG
+      if [ -z "${PHP_BOOTSTRAP}" ]; then
+        cp "${CACHE_DIR}/${EXT}.so" "${PHP_EXT_DIR}/${EXT}.so">>$LOG
+        docker-php-ext-enable ${EXT}>>$LOG
+      fi
     else
       CONFIGURES="${!XCONFIGURES}"
       if [ -n "${CONFIGURES}" ]; then
@@ -109,14 +116,16 @@ ENV=/scripts/php.env
   done
 }
 
-# prepare php.ini
-PHP_INI=${PHP_INI_DIR}/php.ini
-cp ${PHP_INI}-production ${PHP_INI}
-sed -i -e "s#memory_limit = 128M#memory_limit = 1024M#g" \
-       -e "s#max_execution_time = 30#max_execution_time = 60#g" \
-       -e "s#post_max_size = 8M#post_max_size = 0#g" \
-       -e "s#;date.timezone =#date.timezone = ${APP_TIMEZONE}#g" \
-       ${PHP_INI}
+[ -z "${PHP_BOOTSTRAP}" ] && {
+  # prepare php.ini
+  PHP_INI=${PHP_INI_DIR}/php.ini
+  cp ${PHP_INI}-production ${PHP_INI}
+  sed -i -e "s#memory_limit = 128M#memory_limit = 1024M#g" \
+         -e "s#max_execution_time = 30#max_execution_time = 60#g" \
+         -e "s#post_max_size = 8M#post_max_size = 0#g" \
+         -e "s#;date.timezone =#date.timezone = ${APP_TIMEZONE}#g" \
+         ${PHP_INI}
 
-# reload apache
-/etc/init.d/apache2 reload>>$LOG
+  # reload apache
+  /etc/init.d/apache2 reload>>$LOG
+}

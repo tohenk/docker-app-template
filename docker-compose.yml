@@ -32,12 +32,13 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
   node:
-    image: node:${NODE_VER}-bookworm-slim
+    image: node:${NODE_VER}-${DEBIAN_VER}
     restart: unless-stopped
     command:
       - /bin/bash
       - '-c'
       - |
+        export DEBIAN_FRONTEND=noninteractive
         export TARGET_DIR=/home/nodeapp
         export EXCLUDE_FILE=/config/node-exclude.txt
         export COPY_FILES="app.json"
@@ -69,6 +70,7 @@ services:
       - /bin/bash
       - '-c'
       - |
+        export DEBIAN_FRONTEND=noninteractive
         run-script.sh apt php
     environment:
       APT_MIRROR: ${APT_MIRROR}
@@ -84,6 +86,7 @@ services:
       - /bin/bash
       - '-c'
       - |
+        export DEBIAN_FRONTEND=noninteractive
         export TARGET_DIR=/home/www
         export EXCLUDE_FILE=/config/www-exclude.txt
         export APACHE_APP_CONF=/config/app.conf
@@ -154,6 +157,7 @@ services:
       - /bin/bash
       - '-c'
       - |
+        export DEBIAN_FRONTEND=noninteractive
         export CRON_DIR=/cron
         export TARGET_DIR=$${CRON_DIR}
         export ENV_FILE_PATTERN=/config/*.env

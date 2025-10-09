@@ -34,7 +34,7 @@ ENV=/scripts/php.env
 
   # install dependencies
   if [ -n "${EXTRA_PACKAGES}" -a -z "${PHP_BOOTSTRAP}" ]; then
-    apt-get install -y ${EXTRA_PACKAGES}>>$LOG
+    apt install -y ${EXTRA_PACKAGES} 2>>$LOG 1>>$LOG
   fi
 
   # install PHP extensions
@@ -86,7 +86,7 @@ ENV=/scripts/php.env
       PACKAGES="${!XDEVPACKAGES}"
     fi
     if [ -n "${PACKAGES}" ]; then
-      apt-get install -y ${PACKAGES}>>$LOG
+      apt install -y ${PACKAGES} 2>>$LOG 1>>$LOG
     fi
     if [ ${XBUILD} -eq 0 ]; then
       if [ -z "${PHP_BOOTSTRAP}" ]; then

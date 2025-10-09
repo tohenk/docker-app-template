@@ -1,8 +1,9 @@
 #!/bin/bash
 
+LOG=/var/log/mysql.log
 APT_OPTS="-o DPkg::Lock::Timeout=-1"
 
-apt-get install $APT_OPTS -y curl gnupg 7zip>/dev/null
+apt install $APT_OPTS -y curl gnupg 7zip 2>>$LOG 1>>$LOG
 
 # import MySQL GPG public key
 mkdir -p /etc/apt/keyrings
@@ -19,5 +20,5 @@ deb [signed-by=/etc/apt/keyrings/mysql.gpg] http://repo.mysql.com/apt/debian/ bo
 #deb [signed-by=/etc/apt/keyrings/mysql.gpg] http://repo.mysql.com/apt/debian/ bookworm mysql-tools-preview
 deb-src [signed-by=/etc/apt/keyrings/mysql.gpg] http://repo.mysql.com/apt/debian/ bookworm mysql-8.4-lts
 EOF
-apt-get update $APT_OPTS>/dev/null
-apt-get install $APT_OPTS -y mysql-community-client>/dev/null
+apt update $APT_OPTS 2>>$LOG 1>>$LOG
+apt install $APT_OPTS -y mysql-community-client 2>>$LOG 1>>$LOG

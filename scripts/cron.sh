@@ -4,7 +4,7 @@ LOG=/var/log/cron.log
 APT_OPTS="-o DPkg::Lock::Timeout=-1"
 
 if [ -n "$CRON_DIR" ]; then
-  apt-get install $APT_OPTS -y dos2unix cron>>$LOG
+  apt install $APT_OPTS -y dos2unix cron 2>>$LOG 1>>$LOG
   # fixup line ending and permissions
   dos2unix $CRON_DIR/*>>$LOG
   find $CRON_DIR -type f -name '*.sh' -exec chmod +x {} \;

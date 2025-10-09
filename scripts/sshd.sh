@@ -8,7 +8,7 @@ if [ -f /config/hostkey/id_rsa.pub ]; then
   mkdir -p ~/.ssh
   cp /config/hostkey/id_rsa.pub ~/.ssh/authorized_keys
   chmod 0640 ~/.ssh/authorized_keys
-  apt-get install $APT_OPTS -y openssh-server>>$LOG
+  apt install $APT_OPTS -y openssh-server 2>>$LOG 1>>$LOG
   # prepare openssh-server configuration
   SSHD_CONFIG=/etc/ssh/sshd_config
   if [ -n "${APP_SSH_PORT}" ]; then

@@ -39,6 +39,7 @@ services:
       - '-c'
       - |
         export DEBIAN_FRONTEND=noninteractive
+        export DEBIAN_OLDSTABLE="true"
         export TARGET_DIR=/home/nodeapp
         export EXCLUDE_FILE=/config/node-exclude.txt
         export COPY_FILES="app.json"
@@ -158,6 +159,7 @@ services:
       - '-c'
       - |
         export DEBIAN_FRONTEND=noninteractive
+        export DEBIAN_OLDSTABLE="true"
         export CRON_DIR=/cron
         export TARGET_DIR=$${CRON_DIR}
         export ENV_FILE_PATTERN=/config/*.env

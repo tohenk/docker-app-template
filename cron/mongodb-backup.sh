@@ -56,7 +56,6 @@ EOF
           for DIR in $DIRS; do
             if [ -d "$XDIR/$DIR/$DB" ]; then
               LASTDATE=$DIR
-              break
             fi
           done
         fi
@@ -67,7 +66,6 @@ EOF
             for DIR in $DIRS; do
               if [ -d "$TOPDIR/full/$DIR/$DB" ]; then
                 LASTDATE=$DIR
-                break
               fi
             done
           fi

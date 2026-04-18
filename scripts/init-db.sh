@@ -1,19 +1,19 @@
 #!/bin/bash
 
 import_sql() {
-  DB=$1
-  SQL=$2
-  if [ -f "$SQL" ]; then
+  local DB=$1
+  local SQL=$2
+  if [ -f "${SQL}" ]; then
     # create database
-    HASDB=$(echo "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='${DB}';" | mysql -u root -p${MYSQL_ROOT_PASSWORD} --silent)
-    if [ "$HASDB" -eq "0" ]; then
+    local HASDB=$(echo "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='${DB}';" | mysql -u root -p${MYSQL_ROOT_PASSWORD} --silent)
+    if [ "${HASDB}" -eq "0" ]; then
       echo "Creating database ${DB}..."
       cat <<EOF | mysql -u root -p${MYSQL_ROOT_PASSWORD}
 CREATE SCHEMA ${DB};
 GRANT ALL PRIVILEGES ON ${DB}.* TO '${MYSQL_USER}'@'%';
 EOF
     fi
-    SQLTMP=/tmp/$(basename ${SQL})
+    local SQLTMP=/tmp/$(basename ${SQL})
     echo "Import ${SQL} into ${DB}..."
     # copy to temporary
     cp ${SQL} /tmp
@@ -27,9 +27,9 @@ EOF
 }
 
 SQLDIR=/sql
-for DIR in $SQLDIR/*; do
-  DB=$(basename $DIR)
-  for SQL in $DIR/*.sql; do
-    import_sql $DB $SQL
+for DIR in ${SQLDIR}/*; do
+  DB=$(basename ${DIR})
+  for SQL in ${DIR}/*.sql; do
+    import_sql ${DB} ${SQL}
   done
 done

@@ -2,6 +2,7 @@ services:
   mysql:
     image: mysql:${MYSQL_VER}
     restart: unless-stopped
+    init: true
     command:
       - /bin/bash
       - '-c'
@@ -34,6 +35,7 @@ services:
   node:
     image: node:${NODE_VER}-${DEBIAN_VER}
     restart: unless-stopped
+    init: true
     command:
       - /bin/bash
       - '-c'
@@ -78,6 +80,7 @@ services:
       PHP_BOOTSTRAP: "true"
     volumes:
       - ./bin/run-script.sh:/usr/local/bin/run-script.sh
+      - ./config:/config
       - ./scripts:/scripts
       - ./var/cache:/cache
   php:
@@ -162,7 +165,7 @@ services:
         export DEBIAN_OLDSTABLE="true"
         export CRON_DIR=/cron
         export TARGET_DIR=$${CRON_DIR}
-        export ENV_FILE_PATTERN=/config/*.env
+        export ENV_FILE_PATTERN=/config/cron/*.env
         # run initialization
         run-script.sh timezone apt cron hostkey ssh mongodb-client mysql-client genenv
         # start cron

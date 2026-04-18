@@ -15,7 +15,7 @@ LOG=/var/log/apt.log
 [ -f /etc/apt/sources.list.d/ubuntu.sources ] && {
   sed -i -e "s/archive.ubuntu.com/${APT_MIRROR}/g" /etc/apt/sources.list.d/ubuntu.sources
 }
-apt update 2>>$LOG 1>>$LOG
+apt update 1>>${LOG} 2>&1
 if [ -n "${APT_CORE_PACKAGES}" ]; then
-  apt install -y ${APT_CORE_PACKAGES} 2>>$LOG 1>>$LOG
+  apt install -y ${APT_CORE_PACKAGES} 1>>${LOG} 2>&1
 fi

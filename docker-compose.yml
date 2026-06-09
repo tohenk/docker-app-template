@@ -76,7 +76,9 @@ services:
         export DEBIAN_FRONTEND=noninteractive
         run-script.sh apt php
     environment:
+      APP_DEBUG: ${APP_DEBUG}
       APT_MIRROR: ${APT_MIRROR}
+      APT_SKIP_UPDATE: "true"
       PHP_BOOTSTRAP: "true"
     volumes:
       - ./bin/run-script.sh:/usr/local/bin/run-script.sh

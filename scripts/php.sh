@@ -4,7 +4,7 @@ LOG=/var/log/php.log
 
 get_php_ini() {
   local KEY=$1
-  IFS="=>" read -r -a ARR <<< `php -i | grep "^${KEY}"`
+  IFS="=>" read -r -a ARR <<< $(php -i | grep "^${KEY}")
   echo ${ARR[2]} | xargs
 }
 
@@ -38,6 +38,7 @@ ENV=/config/php.env
   fi
 
   # install PHP extensions
+  APT_UPDATED=
   for EXT in ${EXTENSIONS}; do
     IFS=':' read -ra ARR <<< "${EXT}"
     EXT_TYPE=
@@ -86,6 +87,11 @@ ENV=/config/php.env
       PACKAGES="${!XDEVPACKAGES}"
     fi
     if [ -n "${PACKAGES}" ]; then
+      # as APT update previously skipped, perform update now
+      if [ -n "${APT_SKIP_UPDATE}" -a -z "${APT_UPDATED}" ]; then
+        APT_UPDATED="true"
+        apt update 1>>${LOG} 2>&1
+      fi
       apt install -y ${PACKAGES} 1>>${LOG} 2>&1
     fi
     if [ ${XBUILD} -eq 0 ]; then
